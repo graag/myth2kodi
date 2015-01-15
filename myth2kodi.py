@@ -406,27 +406,29 @@ def new_series_from_ttvdb(title, title_safe, inetref, category, directory):
         fanart_text = series.find('fanart').text
         if poster_text is None:
             log.warning('Poster image info could not be retrieved')
+        else:
+            log.info('Downloading poster...')
+            poster_url = ttvdb_banners_url + series.find('poster').text
+            if not download_file(poster_url, os.path.join(directory, 'poster.jpg')):
+                return False
+
         if banner_text is None:
             log.warning('Banner image info could not be retrieved')
+        else:
+            log.info('Downloading banner...')
+            banner_url = ttvdb_banners_url + series.find('banner').text
+            if not download_file(banner_url, os.path.join(directory, 'banner.jpg')):
+                return False
+
         if fanart_text is None:
             log.warning('Fanart image info could not be retrieved')
-        if poster_text is None or banner_text is None or fanart_text is None:
-            return False
+        else:
+            log.info('Downloading fanart...')
+            fanart_url = ttvdb_banners_url + series.find('fanart').text
+            if not download_file(fanart_url, os.path.join(directory, 'fanart.jpg')):
+                return False
 
-        poster_url = ttvdb_banners_url + series.find('poster').text
-        banner_url = ttvdb_banners_url + series.find('banner').text
-        fanart_url = ttvdb_banners_url + series.find('fanart').text
-
-        log.info('Downloading poster...')
-        if not download_file(poster_url, os.path.join(directory, 'poster.jpg')):
-            return False
-
-        log.info('Downloading banner...')
-        if not download_file(banner_url, os.path.join(directory, 'banner.jpg')):
-            return False
-
-        log.info('Downloading fanart...')
-        if not download_file(fanart_url, os.path.join(directory, 'fanart.jpg')):
+        if poster_text is None and banner_text is None and fanart_text is None:
             return False
 
         return True
