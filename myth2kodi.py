@@ -930,7 +930,7 @@ def read_recordings():
                 # branch on inetref type
                 if args.show_status is False:
                     result = False
-                    generic_inetref = ('ttvdvb' not in inetref or 'tmdb' not in inetref)
+                    generic_inetref = ('ttvdb' not in inetref and 'tmdb' not in inetref)
                     if generic_inetref is True:
                         log.warning('Inetref provided is neither TTVDB or TMDB... trying each to find a match...')
 
