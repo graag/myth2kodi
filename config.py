@@ -8,7 +8,7 @@ host_port = "6544"
 mythtv_recording_dirs = ["/pool/mythtv/recordings-kids/"]
 
 # Can be "symlink", "hardlink"
-target_type = "hardlink"
+target_type = "symlink"
 
 # Path to write symlinks
 destination_dir = "/pool/myth2kodi/recordings/"
