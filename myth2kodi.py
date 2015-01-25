@@ -18,6 +18,7 @@ Description:
 import httplib
 
 import os
+import shutil
 import xml.etree.cElementTree as ET
 from lxml import etree as ET2
 import xml.dom.minidom as dom
@@ -719,7 +720,6 @@ def read_recordings():
 
     """
     global log
-    print ''
     series_lib = []
     series_new_lib = []
     episode_count = 0
