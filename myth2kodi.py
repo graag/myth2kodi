@@ -9,7 +9,7 @@ Version: 0.1.36
 Description:
    A script for generating a library of MythTV show recordings for Kodi(XBMC). The key feature of this script is that
    "Specials" (episodes with the same series title, but missing show and episode info) are grouped together under the
-   **same series** for easy navigation in Kodi. To generate the library, recordings are symlinked, and metadata and
+   **same series** for easy navigation in Kodi. To generate the library, recordings are linked, and metadata and
    image links (posters, fanart, and banners) for each series are pulled from either TheTVDB or TheMovieDB depending
    on the "inetref" value in MythTV. Commercial detection is done with comskip.
 ---------------------------
@@ -61,15 +61,15 @@ parser.add_argument('--add', dest='add', action='store', metavar='<path to mpg f
 parser.add_argument('--add-all', dest='add_all', action='store_true', default=False,
                     help='Add all MythTV recordings that are missing.')
 parser.add_argument('--show-status', dest='show_status', action='store_true', default=False,
-                    help='Print the output status showing total and new series, episodes, and specials. This will not write any new symlinks or files.')
+                    help='Print the output status showing total and new series, episodes, and specials. This will not write any new links or files.')
 parser.add_argument('--comskip', dest='comskip', action='store', metavar='<path to mpg file>',
                     help="Full path to file name of MythTV recording, used to comskip just a single recording.")
 parser.add_argument('--comskip-all', dest='comskip_all', action='store_true', default=False,
-                    help='Run comskip on all video files found recursively in the "symlinks_dir" path from config.py.')
+                    help='Run comskip on all video files found recursively in the "destination_dir" path from config.py.')
 parser.add_argument('--comskip-off', dest='comskip_off', action='store_true', default=False,
                     help='Turn off comskip when adding a single recording with --add.')
 parser.add_argument('--comskip-status', dest='comskip_status', action='store_true', default=False,
-                    help='Report sym-linked recordings with missing comskip files.')
+                    help='Report linked recordings with missing comskip files.')
 parser.add_argument('--add-match-title', dest='add_match_title', action='store', metavar='<title match>',
                     help='Process only recordings with titles that contain the given query.')
 parser.add_argument('--add-match-programid', dest='add_match_programid', action='store', metavar='<programid match',
@@ -91,7 +91,7 @@ parser.add_argument('--log-debug', dest='log_debug', action='store_true', defaul
 parser.add_argument('--refresh-nfos', dest='refresh_nfos', action='store_true', default=False,
                     help='Refresh nfo files. Can be combined with --add to refresh specific nfo file.')
 parser.add_argument('--clean', dest='clean', action='store_true', default=False,
-                    help='Perform cleanup operations on symlink directory.')
+                    help='Perform cleanup operations on destination directory.')
 
 # TODO: handle arguments refresh nfos
 # TODO: clean up symlinks, nfo files, and directories when MythTV recordings are deleted
@@ -559,7 +559,7 @@ def print_config():
     print '    hostname:            ' + unicode(config.hostname)
     print '    host_port:           ' + unicode(config.host_port)
     print '    myth_recording_dirs: ' + unicode(config.mythtv_recording_dirs)
-    print '    symlinks_dir:        ' + unicode(config.symlinks_dir)
+    print '    destination_dir:        ' + unicode(config.destination_dir)
     print '    ttvdb_key:           ' + unicode(config.ttvdb_key)
     print '    ttvdb_zips_dir:      ' + unicode(config.ttvdb_zips_dir)
     print '    tmdb_key:            ' + unicode(config.tmdb_key)
@@ -644,7 +644,7 @@ def comskip_all():
         print('No missing comskip files were found.')
     else:
         log.info('Running comskip on ' + str(count) + ' recordings with missing comskip files...')
-        for root, dirs, files in os.walk(config.symlinks_dir):
+        for root, dirs, files in os.walk(config.destination_dir):
             # print root
             # path = root.split('/')
             # print path
@@ -658,7 +658,7 @@ def comskip_all():
 
 def comskip_status(return_missing_count=False):
     comskip_missing_lib = []
-    for root, dirs, files in os.walk(config.symlinks_dir):
+    for root, dirs, files in os.walk(config.destination_dir):
         # print root
         # path = root.split('/')
         # print path
@@ -697,10 +697,10 @@ def clean():
     cleaned_file_exists = os.path.exists(cleaned_file)
     if args.clean is True or not cleaned_file_exists:
         if args.clean is True:
-            log.info('Cleaning symlink directory per argument --clean')
+            log.info('Cleaning destination directory per argument --clean')
         else:
-            log.info('cleaned file was not found, will now perform a cleaning operation on the symlink directory...')
-        for root, dirs, files in os.walk(config.symlinks_dir):
+            log.info('cleaned file was not found, will now perform a cleaning operation on the destination directory...')
+        for root, dirs, files in os.walk(config.destination_dir):
             for file in files:
                 # print os.path.join(root, file)
                 result = re.sub(r'(.*) - [\d]{4}-[\d]{2}-[\d]{2}(.*)', r'\1\2', file)
@@ -729,7 +729,7 @@ def read_recordings():
     image_error_list = []
     updated_nfos_lib = []
 
-    # make sure all files in the symlink directory are in the right format
+    # make sure all files in the destination directory are in the right format
     clean()
 
     recording_list = get_recording_list()
@@ -871,7 +871,7 @@ def read_recordings():
             episode_count += 1
 
         # set target link dir
-        target_link_dir = os.path.join(config.symlinks_dir, title_safe)
+        target_link_dir = os.path.join(config.destination_dir, title_safe)
         link_file = os.path.join(target_link_dir, episode_name) + file_extension
         # print 'LINK FILE = ' + link_file
 
@@ -889,8 +889,8 @@ def read_recordings():
         # skip if link already exists (unless we're updating nfo files)
         if os.path.exists(link_file) or os.path.islink(link_file):
             if args.show_status is False and args.refresh_nfos is False:
-                print 'Symlink already exists: ' + link_file
-                log.info('Symlink already exists: ' + link_file)
+                print 'Link already exists: ' + link_file
+                log.info('Link already exists: ' + link_file)
                 if args.add is not None and args.refresh_nfos is False:
                     continue
 
@@ -906,8 +906,8 @@ def read_recordings():
 
             if source_dir is None:
                 # could not find file!
-                # print ("Cannot create symlink for " + episode_name + ", no valid source directory.  Skipping.")
-                log.error('Cannot create symlink for ' + episode_name + ', no valid source directory.  Skipping.')
+                # print ("Cannot create link for " + episode_name + ", no valid source directory.  Skipping.")
+                log.error('Cannot create link for ' + episode_name + ', no valid source directory.  Skipping.')
                 continue
 
         # this is a new recording (or we're just refreshing nfo files), so check if we're just checking the status for now
@@ -961,12 +961,15 @@ def read_recordings():
                         log.warning('Link file is: ' + link_file)
                         # continue
 
-        # create symlink
+        # create link
         # print "Linking " + source_file + " ==> " + link_file
         if args.show_status is False and args.import_recording_list is None and args.refresh_nfos is False:
             if not os.path.exists(link_file) or not os.path.islink(link_file):
                 log.info('Linking ' + source_file + ' ==> ' + link_file)
-                os.symlink(source_file, link_file)
+                if config.target_type == "symlink":
+                    os.symlink(source_file, link_file)
+                elif config.target_type == "hardlink":
+                    os.link(source_file, link_file)
 
         # write the episode nfo
         if args.show_status is False or args.refresh_nfos is True:
@@ -1022,7 +1025,7 @@ def read_recordings():
     if args.show_status is True:
         if len(series_new_lib) > 0 or len(episode_new_lib) > 0 or len(special_new_lib) > 0:
             print ''
-            print '   THESE SYMLINKS ARE NOT YET CREATED:'
+            print '   THESE LINKS ARE NOT YET CREATED:'
             print '   ----------------------------------'
             if len(series_new_lib) > 0:
                 print '   New Series:'

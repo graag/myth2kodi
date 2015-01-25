@@ -7,8 +7,11 @@ host_port = "6544"
 # A list of MythTV recording directories, full paths in quotes, separated by commas
 mythtv_recording_dirs = ["/pool/mythtv/recordings-kids/"]
 
+# Can be "symlink", "hardlink"
+target_type = "hardlink"
+
 # Path to write symlinks
-symlinks_dir = "/pool/myth2kodi/recordings/"
+destination_dir = "/pool/myth2kodi/recordings/"
 
 # API key for TheTVDB
 ttvdb_key = "<your ttvdb key>"
