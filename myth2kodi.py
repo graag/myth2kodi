@@ -925,6 +925,7 @@ def read_recordings():
                             os.path.exists(os.path.join(target_link_dir, 'tvshow.nfo')))):
                 if not os.path.exists(target_link_dir) and args.show_status is False:
                     os.makedirs(target_link_dir)
+					os.chmod(target_link_dir,0o777)
                 # series_new_count += 1
                 if not target_link_dir in series_new_lib:
                     series_new_lib.append(target_link_dir)
