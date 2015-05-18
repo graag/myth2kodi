@@ -715,28 +715,28 @@ def clean():
 
 
 def run_avconv(source_path, output_path):
-    avconv_command = "nice -n " + str(config.transcode_nicevalue)
+    avconv_command = "nice -n " + str(config.nicevalue)
     avconv_command += " avconv -v 16 -i " + source_path
-    avconv_command += " -c:v " + config.transcode_videocodec
-    avconv_command += " -preset " + config.transcode_preset
-    avconv_command += " -tune " + config.transcode_tune
-    if (config.transcode_deinterlace is True):
+    avconv_command += " -c:v " + config.videocodec
+    avconv_command += " -preset " + config.preset
+    avconv_command += " -tune " + config.tune
+    if (config.deinterlace is True):
         avconv_command += " -vf yadif"
-    avconv_command += " -profile:v " + config.transcode_profile
-    avconv_command += " -level " + str(config.transcode_level)
-    avconv_command += " -c:a " + config.transcode_audiocodec
-    avconv_command += " -threads " + str(config.transcode_threads)
+    avconv_command += " -profile:v " + config.profile
+    avconv_command += " -level " + str(config.level)
+    avconv_command += " -c:a " + config.audiocodec
+    avconv_command += " -threads " + str(config.threads)
     output_path = output_path[:-3]
     output_path += "mp4"
     avconv_command += " \"" + output_path + "\""
-    logger.info("Running avconv command line %s", avconv_command)
+    log.info("Running avconv command line %s", avconv_command)
     os.system(avconv_command)
 
 
 def run_avconv_remux(source_path, output_path):
     avconv_command = ("avconv -v 16 -i " + source_path + " -c copy \"" +
                       output_path + "\"")
-    logger.info("Running avconv remux command line %s", avconv_command)
+    log.info("Running avconv remux command line %s", avconv_command)
     os.system(avconv_command)
 
 
@@ -906,16 +906,15 @@ def read_recordings():
         link_file = os.path.join(target_link_dir, episode_name) + file_extension
         # print 'LINK FILE = ' + link_file
 
-        source_file = os.path.join(mythtv_recording_dir, base_file_name) + file_extension
-
+        
         # avconv (next-gen ffmpeg) support -- convert files to MP4
         # so smaller devices (eg Roku, AppleTV, FireTV, Chromecast)
         # support native playback.
         if config.transcode_enabled is True:
             # Re-encode with avconv
-            run_avconv(source_file, link_path)
+            run_avconv(file_name, link_file)
         elif config.remux_enabled:
-            run_avconv_remux(source_file, link_path)
+            run_avconv_remux(file_name, link_file)
 
         # check if we're running comskip on just one recording
         if args.comskip is not None:
