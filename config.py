@@ -30,3 +30,18 @@ db_name = "mythconverg"
 
 # Comskip location
 comskip_exe = "/home/mythtv/comskip/comskip.exe"
+
+# Encoder settings
+mythcommflag_verbose = False
+tune = film
+mythcommflag_enabled = False
+nicevalue = 0
+profile = high
+level = 41
+videocodec = libx264
+preset = veryfast
+remux_enabled = False
+deinterlace = True
+audiocodec = copy
+threads = 2
+transcode_enabled = False
