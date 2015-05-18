@@ -769,6 +769,7 @@ def read_recordings():
             continue
 
         # collect program attributes
+		subtitle = unicode(recording.find('SubTitle').text)
         season = unicode(recording.find('Season').text)
         episode = unicode(recording.find('Episode').text.zfill(2))
         air_date = unicode(recording.find('Airdate').text)
@@ -860,8 +861,12 @@ def read_recordings():
         title_safe = re.sub(' +', '_', title_safe)
 
         # form the file name
-        episode_name = title_safe + " - " + season + "x" + episode + " - " + base_file_name
-        # if it's a special...
+		if subtitle is not None:
+		    episode_name = title_safe + " - " + season + "x" + episode + " - " + subtitle
+		else:
+		    episode_name = title_safe + " - " + season + "x" + episode + " - " + base_file_name
+        
+		# if it's a special...
         if season.zfill(2) == "00" and episode == "00":
             # episode_name = episode_name + " - " + air_date
             # air_date = record_date  # might be needed so specials get sorted with recognized episodes
