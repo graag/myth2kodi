@@ -7,11 +7,8 @@ host_port = "6544"
 # A list of MythTV recording directories, full paths in quotes, separated by commas
 mythtv_recording_dirs = ["/pool/mythtv/recordings-kids/"]
 
-# Can be "symlink", "hardlink"
-target_type = "symlink"
-
 # Path to write symlinks
-destination_dir = "/pool/myth2kodi/recordings/"
+symlinks_dir = "/pool/myth2kodi/recordings/"
 
 # API key for TheTVDB
 ttvdb_key = "<your ttvdb key>"
@@ -30,3 +27,18 @@ db_name = "mythconverg"
 
 # Comskip location
 comskip_exe = "/home/mythtv/comskip/comskip.exe"
+
+# Encoder settings
+mythcommflag_verbose = False
+tune = film
+mythcommflag_enabled = False
+nicevalue = 0
+profile = high
+level = 41
+videocodec = libx264
+preset = veryfast
+remux_enabled = False
+deinterlace = True
+audiocodec = copy
+threads = 2
+transcode_enabled = False
