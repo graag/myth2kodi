@@ -769,7 +769,7 @@ def read_recordings():
             continue
 
         # collect program attributes
-		subtitle = unicode(recording.find('SubTitle').text)
+        subtitle = unicode(recording.find('SubTitle').text)
         season = unicode(recording.find('Season').text)
         episode = unicode(recording.find('Episode').text.zfill(2))
         air_date = unicode(recording.find('Airdate').text)
@@ -861,12 +861,12 @@ def read_recordings():
         title_safe = re.sub(' +', '_', title_safe)
 
         # form the file name
-		if subtitle is not None:
-		    episode_name = title_safe + " - " + season + "x" + episode + " - " + subtitle
-		else:
-		    episode_name = title_safe + " - " + season + "x" + episode + " - " + base_file_name
+        if subtitle is not None:
+            episode_name = title_safe + " - " + season + "x" + episode + " - " + subtitle
+        else:
+            episode_name = title_safe + " - " + season + "x" + episode + " - " + base_file_name
         
-		# if it's a special...
+        # if it's a special...
         if season.zfill(2) == "00" and episode == "00":
             # episode_name = episode_name + " - " + air_date
             # air_date = record_date  # might be needed so specials get sorted with recognized episodes
@@ -930,7 +930,7 @@ def read_recordings():
                             os.path.exists(os.path.join(target_link_dir, 'tvshow.nfo')))):
                 if not os.path.exists(target_link_dir) and args.show_status is False:
                     os.makedirs(target_link_dir)
-					os.chmod(target_link_dir,0o777)
+                    os.chmod(target_link_dir,0o777)
                 # series_new_count += 1
                 if not target_link_dir in series_new_lib:
                     series_new_lib.append(target_link_dir)
