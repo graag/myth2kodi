@@ -9,7 +9,7 @@ Version: 0.1.36
 Description:
    A script for generating a library of MythTV show recordings for Kodi(XBMC). The key feature of this script is that
    "Specials" (episodes with the same series title, but missing show and episode info) are grouped together under the
-   **same series** for easy navigation in Kodi. To generate the library, recordings are symlinked, and metadata and
+   **same series** for easy navigation in Kodi. To generate the library, recordings are linked, and metadata and
    image links (posters, fanart, and banners) for each series are pulled from either TheTVDB or TheMovieDB depending
    on the "inetref" value in MythTV. Commercial detection is done with comskip.
 ---------------------------
@@ -18,6 +18,7 @@ Description:
 import httplib
 
 import os
+import shutil
 import xml.etree.cElementTree as ET
 from lxml import etree as ET2
 import xml.dom.minidom as dom
@@ -61,15 +62,15 @@ parser.add_argument('--add', dest='add', action='store', metavar='<path to mpg f
 parser.add_argument('--add-all', dest='add_all', action='store_true', default=False,
                     help='Add all MythTV recordings that are missing.')
 parser.add_argument('--show-status', dest='show_status', action='store_true', default=False,
-                    help='Print the output status showing total and new series, episodes, and specials. This will not write any new symlinks or files.')
+                    help='Print the output status showing total and new series, episodes, and specials. This will not write any new links or files.')
 parser.add_argument('--comskip', dest='comskip', action='store', metavar='<path to mpg file>',
                     help="Full path to file name of MythTV recording, used to comskip just a single recording.")
 parser.add_argument('--comskip-all', dest='comskip_all', action='store_true', default=False,
-                    help='Run comskip on all video files found recursively in the "symlinks_dir" path from config.py.')
+                    help='Run comskip on all video files found recursively in the "destination_dir" path from config.py.')
 parser.add_argument('--comskip-off', dest='comskip_off', action='store_true', default=False,
                     help='Turn off comskip when adding a single recording with --add.')
 parser.add_argument('--comskip-status', dest='comskip_status', action='store_true', default=False,
-                    help='Report sym-linked recordings with missing comskip files.')
+                    help='Report linked recordings with missing comskip files.')
 parser.add_argument('--add-match-title', dest='add_match_title', action='store', metavar='<title match>',
                     help='Process only recordings with titles that contain the given query.')
 parser.add_argument('--add-match-programid', dest='add_match_programid', action='store', metavar='<programid match',
@@ -91,7 +92,7 @@ parser.add_argument('--log-debug', dest='log_debug', action='store_true', defaul
 parser.add_argument('--refresh-nfos', dest='refresh_nfos', action='store_true', default=False,
                     help='Refresh nfo files. Can be combined with --add to refresh specific nfo file.')
 parser.add_argument('--clean', dest='clean', action='store_true', default=False,
-                    help='Perform cleanup operations on symlink directory.')
+                    help='Perform cleanup operations on destination directory.')
 
 # TODO: handle arguments refresh nfos
 # TODO: clean up symlinks, nfo files, and directories when MythTV recordings are deleted
@@ -406,27 +407,29 @@ def new_series_from_ttvdb(title, title_safe, inetref, category, directory):
         fanart_text = series.find('fanart').text
         if poster_text is None:
             log.warning('Poster image info could not be retrieved')
+        else:
+            log.info('Downloading poster...')
+            poster_url = ttvdb_banners_url + series.find('poster').text
+            if not download_file(poster_url, os.path.join(directory, 'poster.jpg')):
+                return False
+
         if banner_text is None:
             log.warning('Banner image info could not be retrieved')
+        else:
+            log.info('Downloading banner...')
+            banner_url = ttvdb_banners_url + series.find('banner').text
+            if not download_file(banner_url, os.path.join(directory, 'banner.jpg')):
+                return False
+
         if fanart_text is None:
             log.warning('Fanart image info could not be retrieved')
-        if poster_text is None or banner_text is None or fanart_text is None:
-            return False
+        else:
+            log.info('Downloading fanart...')
+            fanart_url = ttvdb_banners_url + series.find('fanart').text
+            if not download_file(fanart_url, os.path.join(directory, 'fanart.jpg')):
+                return False
 
-        poster_url = ttvdb_banners_url + series.find('poster').text
-        banner_url = ttvdb_banners_url + series.find('banner').text
-        fanart_url = ttvdb_banners_url + series.find('fanart').text
-
-        log.info('Downloading poster...')
-        if not download_file(poster_url, os.path.join(directory, 'poster.jpg')):
-            return False
-
-        log.info('Downloading banner...')
-        if not download_file(banner_url, os.path.join(directory, 'banner.jpg')):
-            return False
-
-        log.info('Downloading fanart...')
-        if not download_file(fanart_url, os.path.join(directory, 'fanart.jpg')):
+        if poster_text is None and banner_text is None and fanart_text is None:
             return False
 
         return True
@@ -557,7 +560,7 @@ def print_config():
     print '    hostname:            ' + unicode(config.hostname)
     print '    host_port:           ' + unicode(config.host_port)
     print '    myth_recording_dirs: ' + unicode(config.mythtv_recording_dirs)
-    print '    symlinks_dir:        ' + unicode(config.symlinks_dir)
+    print '    destination_dir:        ' + unicode(config.destination_dir)
     print '    ttvdb_key:           ' + unicode(config.ttvdb_key)
     print '    ttvdb_zips_dir:      ' + unicode(config.ttvdb_zips_dir)
     print '    tmdb_key:            ' + unicode(config.tmdb_key)
@@ -642,7 +645,7 @@ def comskip_all():
         print('No missing comskip files were found.')
     else:
         log.info('Running comskip on ' + str(count) + ' recordings with missing comskip files...')
-        for root, dirs, files in os.walk(config.symlinks_dir):
+        for root, dirs, files in os.walk(config.destination_dir):
             # print root
             # path = root.split('/')
             # print path
@@ -656,7 +659,7 @@ def comskip_all():
 
 def comskip_status(return_missing_count=False):
     comskip_missing_lib = []
-    for root, dirs, files in os.walk(config.symlinks_dir):
+    for root, dirs, files in os.walk(config.destination_dir):
         # print root
         # path = root.split('/')
         # print path
@@ -695,10 +698,10 @@ def clean():
     cleaned_file_exists = os.path.exists(cleaned_file)
     if args.clean is True or not cleaned_file_exists:
         if args.clean is True:
-            log.info('Cleaning symlink directory per argument --clean')
+            log.info('Cleaning destination directory per argument --clean')
         else:
-            log.info('cleaned file was not found, will now perform a cleaning operation on the symlink directory...')
-        for root, dirs, files in os.walk(config.symlinks_dir):
+            log.info('cleaned file was not found, will now perform a cleaning operation on the destination directory...')
+        for root, dirs, files in os.walk(config.destination_dir):
             for file in files:
                 # print os.path.join(root, file)
                 result = re.sub(r'(.*) - [\d]{4}-[\d]{2}-[\d]{2}(.*)', r'\1\2', file)
@@ -711,39 +714,12 @@ def clean():
             log.info('cleaned file found, clean operation was skipped.')
 
 
-def run_avconv(source_path, output_path):
-    avconv_command = "nice -n " + str(config.transcode_nicevalue)
-    avconv_command += " avconv -v 16 -i " + source_path
-    avconv_command += " -c:v " + config.transcode_videocodec
-    avconv_command += " -preset " + config.transcode_preset
-    avconv_command += " -tune " + config.transcode_tune
-    if (config.transcode_deinterlace is True):
-        avconv_command += " -vf yadif"
-    avconv_command += " -profile:v " + config.transcode_profile
-    avconv_command += " -level " + str(config.transcode_level)
-    avconv_command += " -c:a " + config.transcode_audiocodec
-    avconv_command += " -threads " + str(config.transcode_threads)
-    output_path = output_path[:-3]
-    output_path += "mp4"
-    avconv_command += " \"" + output_path + "\""
-    logger.info("Running avconv command line %s", avconv_command)
-    os.system(avconv_command)
-    
-
-def run_avconv_remux(source_path, output_path):
-    avconv_command = ("avconv -v 16 -i " + source_path + " -c copy \"" +
-                      output_path + "\"")
-    logger.info("Running avconv remux command line %s", avconv_command)
-    os.system(avconv_command)
-  
-			
 def read_recordings():
     """
     read MythTV recordings
 
     """
     global log
-    print ''
     series_lib = []
     series_new_lib = []
     episode_count = 0
@@ -753,7 +729,7 @@ def read_recordings():
     image_error_list = []
     updated_nfos_lib = []
 
-    # make sure all files in the symlink directory are in the right format
+    # make sure all files in the destination directory are in the right format
     clean()
 
     recording_list = get_recording_list()
@@ -793,6 +769,7 @@ def read_recordings():
             continue
 
         # collect program attributes
+        subtitle = unicode(recording.find('SubTitle').text)
         season = unicode(recording.find('Season').text)
         episode = unicode(recording.find('Episode').text.zfill(2))
         air_date = unicode(recording.find('Airdate').text)
@@ -884,7 +861,11 @@ def read_recordings():
         title_safe = re.sub(' +', '_', title_safe)
 
         # form the file name
-        episode_name = title_safe + " - " + season + "x" + episode + " - " + base_file_name
+        if subtitle is not None:
+            episode_name = title_safe + " - " + season + "x" + episode + " - " + subtitle
+        else:
+            episode_name = title_safe + " - " + season + "x" + episode + " - " + base_file_name
+        
         # if it's a special...
         if season.zfill(2) == "00" and episode == "00":
             # episode_name = episode_name + " - " + air_date
@@ -895,20 +876,9 @@ def read_recordings():
             episode_count += 1
 
         # set target link dir
-        target_link_dir = os.path.join(config.symlinks_dir, title_safe)
+        target_link_dir = os.path.join(config.destination_dir, title_safe)
         link_file = os.path.join(target_link_dir, episode_name) + file_extension
         # print 'LINK FILE = ' + link_file
-		
-		source_file = os.path.join(mythtv_recording_dir, base_file_name) + file_extension
-		
-		# avconv (next-gen ffmpeg) support -- convert files to MP4
-        # so smaller devices (eg Roku, AppleTV, FireTV, Chromecast)
-        # support native playback.
-        if config.transcode_enabled is True:
-            # Re-encode with avconv
-            run_avconv(source_link, link_path)
-        elif config.remux_enabled:
-            run_avconv_remux(source_link, link_path)
 
         # check if we're running comskip on just one recording
         if args.comskip is not None:
@@ -924,8 +894,8 @@ def read_recordings():
         # skip if link already exists (unless we're updating nfo files)
         if os.path.exists(link_file) or os.path.islink(link_file):
             if args.show_status is False and args.refresh_nfos is False:
-                print 'Symlink already exists: ' + link_file
-                log.info('Symlink already exists: ' + link_file)
+                print 'Link already exists: ' + link_file
+                log.info('Link already exists: ' + link_file)
                 if args.add is not None and args.refresh_nfos is False:
                     continue
 
@@ -941,8 +911,8 @@ def read_recordings():
 
             if source_dir is None:
                 # could not find file!
-                # print ("Cannot create symlink for " + episode_name + ", no valid source directory.  Skipping.")
-                log.error('Cannot create symlink for ' + episode_name + ', no valid source directory.  Skipping.')
+                # print ("Cannot create link for " + episode_name + ", no valid source directory.  Skipping.")
+                log.error('Cannot create link for ' + episode_name + ', no valid source directory.  Skipping.')
                 continue
 
         # this is a new recording (or we're just refreshing nfo files), so check if we're just checking the status for now
@@ -960,7 +930,7 @@ def read_recordings():
                             os.path.exists(os.path.join(target_link_dir, 'tvshow.nfo')))):
                 if not os.path.exists(target_link_dir) and args.show_status is False:
                     os.makedirs(target_link_dir)
-					os.chmod(target_link_dir,0o777)
+                    os.chmod(target_link_dir,0o777)
                 # series_new_count += 1
                 if not target_link_dir in series_new_lib:
                     series_new_lib.append(target_link_dir)
@@ -968,7 +938,7 @@ def read_recordings():
                 # branch on inetref type
                 if args.show_status is False:
                     result = False
-                    generic_inetref = ('ttvdvb' not in inetref or 'tmdb' not in inetref)
+                    generic_inetref = ('ttvdb' not in inetref and 'tmdb' not in inetref)
                     if generic_inetref is True:
                         log.warning('Inetref provided is neither TTVDB or TMDB... trying each to find a match...')
 
@@ -997,12 +967,15 @@ def read_recordings():
                         log.warning('Link file is: ' + link_file)
                         # continue
 
-        # create symlink
+        # create link
         # print "Linking " + source_file + " ==> " + link_file
         if args.show_status is False and args.import_recording_list is None and args.refresh_nfos is False:
             if not os.path.exists(link_file) or not os.path.islink(link_file):
                 log.info('Linking ' + source_file + ' ==> ' + link_file)
-                os.symlink(source_file, link_file)
+                if config.target_type == "symlink":
+                    os.symlink(source_file, link_file)
+                elif config.target_type == "hardlink":
+                    os.link(source_file, link_file)
 
         # write the episode nfo
         if args.show_status is False or args.refresh_nfos is True:
@@ -1058,7 +1031,7 @@ def read_recordings():
     if args.show_status is True:
         if len(series_new_lib) > 0 or len(episode_new_lib) > 0 or len(special_new_lib) > 0:
             print ''
-            print '   THESE SYMLINKS ARE NOT YET CREATED:'
+            print '   THESE LINKS ARE NOT YET CREATED:'
             print '   ----------------------------------'
             if len(series_new_lib) > 0:
                 print '   New Series:'
