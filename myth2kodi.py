@@ -905,16 +905,31 @@ def read_recordings():
         target_link_dir = os.path.join(config.destination_dir, title_safe)
         link_file = os.path.join(target_link_dir, episode_name) + file_extension
         # print 'LINK FILE = ' + link_file
+        
+        # find source directory, and if not found, skip it because it's an orphaned recording!
+        # (skip this if we are reading from an xml file)
+        if args.import_recording_list is None:
+            source_dir = None
+            for mythtv_recording_dir in config.mythtv_recording_dirs[:]:
+                source_file = os.path.join(mythtv_recording_dir, base_file_name) + file_extension
+                if os.path.isfile(source_file):
+                    source_dir = mythtv_recording_dir
+                    break
 
+            if source_dir is None:
+                # could not find file!
+                # print ("Cannot create link for " + episode_name + ", no valid source directory.  Skipping.")
+                log.error('Cannot create link for ' + episode_name + ', no valid source directory.  Skipping.')
+                continue
         
         # avconv (next-gen ffmpeg) support -- convert files to MP4
         # so smaller devices (eg Roku, AppleTV, FireTV, Chromecast)
         # support native playback.
         if config.transcode_enabled is True:
             # Re-encode with avconv
-            run_avconv(file_name, link_file)
+            run_avconv(source_file, link_file)
         elif config.remux_enabled:
-            run_avconv_remux(file_name, link_file)
+            run_avconv_remux(source_file, link_file)
 
         # check if we're running comskip on just one recording
         if args.comskip is not None:
@@ -934,22 +949,6 @@ def read_recordings():
                 log.info('Link already exists: ' + link_file)
                 if args.add is not None and args.refresh_nfos is False:
                     continue
-
-        # find source directory, and if not found, skip it because it's an orphaned recording!
-        # (skip this if we are reading from an xml file)
-        if args.import_recording_list is None:
-            source_dir = None
-            for mythtv_recording_dir in config.mythtv_recording_dirs[:]:
-                source_file = os.path.join(mythtv_recording_dir, base_file_name) + file_extension
-                if os.path.isfile(source_file):
-                    source_dir = mythtv_recording_dir
-                    break
-
-            if source_dir is None:
-                # could not find file!
-                # print ("Cannot create link for " + episode_name + ", no valid source directory.  Skipping.")
-                log.error('Cannot create link for ' + episode_name + ', no valid source directory.  Skipping.')
-                continue
 
         # this is a new recording (or we're just refreshing nfo files), so check if we're just checking the status for now
         if args.show_status is True and is_special is True:
