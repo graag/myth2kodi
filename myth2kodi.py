@@ -827,8 +827,8 @@ def read_recordings():
                 print('title: ' + title)
                 print('plot: ' + plot)
 
-	file_extension = os.path.splitext(file_name)[1] 
-	log.info('PROCESSING PROGRAM:')
+        file_extension = os.path.splitext(file_name)[1] 
+        log.info('PROCESSING PROGRAM:')
         log.info('Title: ' + title)
         log.info('Filename: ' + base_file_name + file_extension)
         log.info('Program ID: ' + program_id)
